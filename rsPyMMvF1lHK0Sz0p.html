@@ -1,0 +1,301 @@
+<html><head><base href="quiz.html/admin.html">
+<title>ExamAdax - Área Administrativa</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  header {
+    background-color: #343a40;
+    color: #fff;
+    text-align: center;
+    padding: 1rem;
+  }
+  nav {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+  }
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+  }
+  nav ul li {
+    margin: 0 10px;
+  }
+  nav ul li a {
+    text-decoration: none;
+    color: #007bff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  nav ul li a:hover {
+    background-color: #007bff;
+    color: #fff;
+  }
+  nav ul li a.active {
+    background-color: #007bff;
+    color: #fff;
+  }
+  .admin-panel {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 2rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+  }
+  h2 {
+    margin-bottom: 1rem;
+  }
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+  }
+  button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+  .preview {
+    margin-top: 2rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  th, td {
+    border: 1px solid #ced4da;
+    padding: 0.5rem;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  th {
+    background-color: #f8f9fa;
+  }
+  .truncate {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .col-id { width: 5%; }
+  .col-pergunta { width: 20%; }
+  .col-opcao { width: 10%; }
+  .col-resposta { width: 5%; }
+  .col-explicacao { width: 20%; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>ExamAdax - Área Administrativa</h1>
+    </div>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="index.html">Início</a></li>
+      <li><a href="quiz.html">Questões</a></li>
+      <li><a href="admin.html" class="active">Área Administrativa</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <div class="admin-panel">
+      <h2>Importar Questões</h2>
+      <form id="import-form">
+        <div class="form-group">
+          <label for="import-file">Selecione o arquivo Excel ou TXT:</label>
+          <input type="file" id="import-file" accept=".xlsx, .xls, .txt" required>
+        </div>
+        <button type="submit">Importar</button>
+      </form>
+
+      <div class="preview">
+        <h3>Pré-visualização</h3>
+        <table id="preview-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-pergunta">Pergunta</th>
+              <th class="col-opcao">Opção A</th>
+              <th class="col-opcao">Opção B</th>
+              <th class="col-opcao">Opção C</th>
+              <th class="col-opcao">Opção D</th>
+              <th class="col-opcao">Opção E</th>
+              <th class="col-resposta">Resposta</th>
+              <th class="col-explicacao">Explicação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Os dados da pré-visualização serão inseridos aqui -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    document.getElementById('import-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const file = document.getElementById('import-file').files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        let jsonData;
+        if (file.name.endsWith('.txt')) {
+          const content = e.target.result;
+          jsonData = parseTxtContent(content);
+        } else {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+        }
+
+        // Preencher a tabela de pré-visualização
+        const tableBody = document.querySelector('#preview-table tbody');
+        tableBody.innerHTML = '';
+
+        jsonData.slice(1).forEach(row => {
+          const tr = document.createElement('tr');
+          row.forEach((cell, index) => {
+            const td = document.createElement('td');
+            td.className = 'truncate';
+            td.textContent = cell;
+            td.title = cell; // Adiciona o texto completo como título para exibição ao passar o mouse
+            tr.appendChild(td);
+          });
+          tableBody.appendChild(tr);
+        });
+
+        // Aqui você pode adicionar lógica para enviar os dados para o servidor
+        console.log('Dados importados:', jsonData);
+      };
+
+      if (file.name.endsWith('.txt')) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    function parseTxtContent(content) {
+      // Implemente a lógica para analisar o conteúdo do arquivo TXT
+      // e retornar um array de arrays similar ao formato JSON do Excel
+      const lines = content.split('\n');
+      return lines.map(line => line.split('\t'));
+    }
+
+    // Adicionar exemplos de questões
+    const exampleQuestions = [
+      {
+        id: 1,
+        pergunta: "Em que ano o Brasil foi descoberto oficialmente?",
+        opcaoA: "1492",
+        opcaoB: "1500",
+        opcaoC: "1530",
+        opcaoD: "1822",
+        opcaoE: "1889",
+        respostaCorreta: "B",
+        explicacao: "O Brasil foi oficialmente descoberto em 22 de abril de 1500 por Pedro Álvares Cabral."
+      },
+      {
+        id: 2,
+        pergunta: "Quem foi o primeiro imperador do Brasil?",
+        opcaoA: "Dom Pedro I",
+        opcaoB: "Dom Pedro II",
+        opcaoC: "Dom João VI",
+        opcaoD: "Princesa Isabel",
+        opcaoE: "Tiradentes",
+        respostaCorreta: "A",
+        explicacao: "Dom Pedro I foi o primeiro imperador do Brasil, proclamando a independência em 1822."
+      },
+      {
+        id: 3,
+        pergunta: "Qual evento histórico ficou conhecido como 'Inconfidência Mineira'?",
+        opcaoA: "Proclamação da República",
+        opcaoB: "Abolição da Escravatura",
+        opcaoC: "Movimento separatista em Minas Gerais",
+        opcaoD: "Chegada da Família Real ao Brasil",
+        opcaoE: "Independência do Brasil",
+        respostaCorreta: "C",
+        explicacao: "A Inconfidência Mineira foi um movimento separatista ocorrido em Minas Gerais no final do século XVIII."
+      },
+      {
+        id: 4,
+        pergunta: "Em que ano foi proclamada a República no Brasil?",
+        opcaoA: "1822",
+        opcaoB: "1888",
+        opcaoC: "1889",
+        opcaoD: "1891",
+        opcaoE: "1930",
+        respostaCorreta: "C",
+        explicacao: "A República foi proclamada no Brasil em 15 de novembro de 1889, marcando o fim do período imperial."
+      },
+      {
+        id: 5,
+        pergunta: "Quem liderou a Revolução de 1930, que pôs fim à República Velha?",
+        opcaoA: "Getúlio Vargas",
+        opcaoB: "Juscelino Kubitschek",
+        opcaoC: "Washington Luís",
+        opcaoD: "Deodoro da Fonseca",
+        opcaoE: "João Goulart",
+        respostaCorreta: "A",
+        explicacao: "Getúlio Vargas liderou a Revolução de 1930, que marcou o fim da República Velha e o início da Era Vargas."
+      }
+    ];
+
+    // Preencher a tabela com os exemplos
+    const tableBody = document.querySelector('#preview-table tbody');
+    exampleQuestions.forEach(question => {
+      const tr = document.createElement('tr');
+      Object.values(question).forEach(value => {
+        const td = document.createElement('td');
+        td.className = 'truncate';
+        td.textContent = value.toString();
+        td.title = value.toString();
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>
